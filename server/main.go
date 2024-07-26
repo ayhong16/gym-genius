@@ -24,6 +24,15 @@ func init() {
 }
 
 func main() {
+	location, _ := time.LoadLocation("America/Central")
+	scheduler := cron.New(cron.WithLocation(location))
+	_, _ = scheduler.AddFunc("05 12 * * *", func() {
+		updateExercises()
+	})
+	select {}
+}
+
+func updateExercises() {
 	clientOptions := options.Client().ApplyURI(connectionString)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
@@ -32,21 +41,8 @@ func main() {
 		return
 	}
 
-	fmt.Println("Connected to MongoDB!")
+	fmt.Print("Connected to MongoDB!\n")
 
-	location, _ := time.LoadLocation("America/Central")
-	scheduler := cron.New(cron.WithLocation(location))
-	_, err = scheduler.AddFunc("2 12 * * *", func() {
-		updateExercises(client)
-	})
-	if err != nil {
-		log.Fatalf("Failed to schedule job: %v", err)
-		return
-	}
-	select {}
-}
-
-func updateExercises(client *mongo.Client) {
 	collection := client.Database("gym_management").Collection("exercises")
 
 	// if collection has no data, insert new exercises (only happens the first time)
