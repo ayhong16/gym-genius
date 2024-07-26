@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"server/initializers"
+	"server/types"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -71,7 +72,7 @@ func updateExercises(client *mongo.Client) {
 	fmt.Println("Exercises stored in MongoDB!")
 }
 
-func fetchExercises() ([]Exercise, error) {
+func fetchExercises() ([]types.Exercise, error) {
 	url := "https://exercisedb.p.rapidapi.com/exercises?limit=0&offset=0"
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -93,7 +94,7 @@ func fetchExercises() ([]Exercise, error) {
 		return nil, err
 	}
 
-	var exercises []Exercise
+	var exercises []types.Exercise
 	if err := json.NewDecoder(resp.Body).Decode(&exercises); err != nil {
 		return nil, err
 	}
