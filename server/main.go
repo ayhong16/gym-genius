@@ -1,33 +1,82 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"server/initializers"
+	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var APIKey string
+var connectionString string
 
 func init() {
-	APIKey = initializers.LoadEnvVariables()
+	APIKey, connectionString = initializers.LoadEnvVariables()
 }
 
 func main() {
-	r := gin.Default()
-	r.GET("/exercises", fetchExercises)
-	r.Run()
+	clientOptions := options.Client().ApplyURI(connectionString)
+
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		log.Fatalf("Unable to connect to MongoDB: %v", err)
+		return
+	}
+
+	fmt.Println("Connected to MongoDB!")
+
+	scheduler := cron.New(cron.WithLocation(time.FixedZone("CST", -6*3600)))
+	_, err = scheduler.AddFunc("0 12 * * *", func() {
+		updateExercises(client)
+	})
+	if err != nil {
+		log.Fatalf("Failed to schedule job: %v", err)
+		return
+	}
+
+	scheduler.Start()
+
+	select {}
 }
 
-func fetchExercises(c *gin.Context) {
+func updateExercises(client *mongo.Client) {
+	collection := client.Database("gym_management").Collection("exercises")
+
+	// if collection has no data, insert new exercises (only happens the first time)
+	exercises, err := fetchExercises()
+	if err != nil {
+		log.Fatalf("Failed to fetch exercises: %v", err)
+		return
+	}
+
+	for _, exercise := range exercises {
+		filter := bson.M{"id": exercise.ID}
+		update := bson.M{"$set": exercise}
+		options := options.Update().SetUpsert(true)
+
+		_, err := collection.UpdateOne(context.TODO(), filter, update, options)
+		if err != nil {
+			log.Fatalf("Failed to update or insert exercise %s: %v", exercise.ID, err)
+			return
+		}
+	}
+	fmt.Println("Exercises stored in MongoDB!")
+}
+
+func fetchExercises() ([]Exercise, error) {
 	url := "https://exercisedb.p.rapidapi.com/exercises?limit=0&offset=0"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
-		return
+		return nil, err
 	}
 
 	req.Header.Add("x-rapidapi-host", "exercisedb.p.rapidapi.com")
@@ -36,22 +85,18 @@ func fetchExercises(c *gin.Context) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send request"})
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		c.JSON(resp.StatusCode, gin.H{"error": "Failed to fetch exercises"})
-		return
+		return nil, err
 	}
 
 	var exercises []Exercise
 	if err := json.NewDecoder(resp.Body).Decode(&exercises); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode response"})
-		return
+		return nil, err
 	}
-	fmt.Printf("Returned %d exercises\n", len(exercises))
 
-	c.JSON(http.StatusOK, exercises)
+	return exercises, nil
 }

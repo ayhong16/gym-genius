@@ -7,12 +7,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func LoadEnvVariables() string {
+func LoadEnvVariables() (string, string) {
 	err := godotenv.Load()
 
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 	apiKey := os.Getenv("EXERCISE_DB_API_KEY")
-	return apiKey
+	connectionString := os.Getenv("GYM_CLUSTER_CONNECTION_STRING")
+	return apiKey, connectionString
 }

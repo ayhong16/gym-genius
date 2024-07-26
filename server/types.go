@@ -1,4 +1,4 @@
-package main
+package types
 
 type Exercise struct {
 	BodyPart         string   `json:"bodyPart"`
