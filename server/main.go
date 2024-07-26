@@ -34,17 +34,15 @@ func main() {
 
 	fmt.Println("Connected to MongoDB!")
 
-	scheduler := cron.New(cron.WithLocation(time.FixedZone("CST", -6*3600)))
-	_, err = scheduler.AddFunc("0 12 * * *", func() {
+	location, _ := time.LoadLocation("America/Central")
+	scheduler := cron.New(cron.WithLocation(location))
+	_, err = scheduler.AddFunc("2 12 * * *", func() {
 		updateExercises(client)
 	})
 	if err != nil {
 		log.Fatalf("Failed to schedule job: %v", err)
 		return
 	}
-
-	scheduler.Start()
-
 	select {}
 }
 
