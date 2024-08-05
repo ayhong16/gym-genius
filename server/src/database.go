@@ -15,26 +15,26 @@ import (
 )
 
 type Database struct {
-	APIKey           string
+	apiKey           string
 	connectionString string
-	client           *mongo.Client
+	Client           *mongo.Client
 }
 
 func NewDatabase() *Database {
-	APIKey, connectionString := initializers.LoadEnvVariables()
+	apiKey, connectionString := initializers.LoadEnvVariables()
 	client := getClient(connectionString)
 
 	return &Database{
-		APIKey:           APIKey,
+		apiKey:           apiKey,
 		connectionString: connectionString,
-		client:           client,
+		Client:           client,
 	}
 }
 
 func (db *Database) UpdateExercises() {
 	fmt.Println("Updating MongoDB exercises...")
 
-	collection := db.client.Database("gym_management").Collection("exercises")
+	collection := db.Client.Database("gym_management").Collection("exercises")
 
 	exercises, err := db.fetchExercises()
 	if err != nil {
@@ -42,6 +42,12 @@ func (db *Database) UpdateExercises() {
 		return
 	}
 	updateCollection(exercises, collection)
+}
+
+func (db *Database) Disconnect(ctx context.Context) {
+	if err := db.Client.Disconnect(ctx); err != nil {
+		log.Fatalf("Failed to disconnect from MongoDB: %v", err)
+	}
 }
 
 func updateCollection(exercises []types.Exercise, collection *mongo.Collection) {
@@ -70,7 +76,7 @@ func (db *Database) fetchExercises() ([]types.Exercise, error) {
 	}
 
 	req.Header.Add("x-rapidapi-host", "exercisedb.p.rapidapi.com")
-	req.Header.Add("x-rapidapi-key", db.APIKey)
+	req.Header.Add("x-rapidapi-key", db.apiKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
