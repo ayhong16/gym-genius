@@ -2,6 +2,7 @@ package src
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -33,4 +34,5 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 	<-ctx.Done()
 	s.cron.Stop()
+	fmt.Println("Scheduler stopped")
 }

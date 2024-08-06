@@ -19,9 +19,7 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	database := src.NewDatabase()
-	defer func() {
-		database.Disconnect(ctx)
-	}()
+	defer database.Disconnect()
 
 	scheduler := src.NewScheduler(database)
 
@@ -36,6 +34,6 @@ func main() {
 	fmt.Println("Shutting down server...")
 
 	cancel()
+	fmt.Println("Cancelled context")
 	wg.Wait()
-	fmt.Println("Server shut down successfully")
 }

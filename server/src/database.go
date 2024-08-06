@@ -44,11 +44,37 @@ func (db *Database) UpdateExercises() {
 	updateCollection(exercises, collection)
 }
 
-func (db *Database) Disconnect(ctx context.Context) {
-	if err := db.Client.Disconnect(ctx); err != nil {
-		log.Fatalf("Failed to disconnect from MongoDB: %v", err)
+func (db *Database) Disconnect() {
+	fmt.Println("Disconnecting from MongoDB...")
+	if err := db.Client.Disconnect(context.TODO()); err != nil {
+		panic(err)
+	} else {
+		fmt.Println("Disconnected from MongoDB")
 	}
 }
+
+// func (db *Database) Disconnect() {
+// 	fmt.Println("Disconnecting from MongoDB...")
+// 	ctx := context.TODO()
+// 	done := make(chan error, 1)
+// 	go func() {
+// 		done <- db.Client.Disconnect(ctx)
+// 	}()
+
+// 	select {
+// 	case err := <-done:
+// 		if err != nil {
+// 			log.Printf("Failed to disconnect from MongoDB: %v", err)
+// 		}
+// 		log.Printf("Disconnected from MongoDB")
+// 	case <-ctx.Done():
+// 		if ctx.Err() == context.Canceled {
+// 			log.Println("Context canceled while disconnecting from MongoDB")
+// 		} else {
+// 			log.Println("Context deadline exceeded while disconnecting from MongoDB")
+// 		}
+// 	}
+// }
 
 func updateCollection(exercises []types.Exercise, collection *mongo.Collection) {
 	var models []mongo.WriteModel
