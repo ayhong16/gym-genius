@@ -53,29 +53,6 @@ func (db *Database) Disconnect() {
 	}
 }
 
-// func (db *Database) Disconnect() {
-// 	fmt.Println("Disconnecting from MongoDB...")
-// 	ctx := context.TODO()
-// 	done := make(chan error, 1)
-// 	go func() {
-// 		done <- db.Client.Disconnect(ctx)
-// 	}()
-
-// 	select {
-// 	case err := <-done:
-// 		if err != nil {
-// 			log.Printf("Failed to disconnect from MongoDB: %v", err)
-// 		}
-// 		log.Printf("Disconnected from MongoDB")
-// 	case <-ctx.Done():
-// 		if ctx.Err() == context.Canceled {
-// 			log.Println("Context canceled while disconnecting from MongoDB")
-// 		} else {
-// 			log.Println("Context deadline exceeded while disconnecting from MongoDB")
-// 		}
-// 	}
-// }
-
 func updateCollection(exercises []types.Exercise, collection *mongo.Collection) {
 	var models []mongo.WriteModel
 	for _, exercise := range exercises {
@@ -121,6 +98,24 @@ func (db *Database) fetchExercises() ([]types.Exercise, error) {
 	}
 
 	return exercises, nil
+}
+
+func (db *Database) FetchWorkouts() ([]types.Workout, error) {
+	collection := db.Client.Database("gym_management").Collection("workouts")
+	sort := bson.M{"creationDate": -1}
+	opts := options.Find().SetSort(sort).SetLimit(10)
+
+	cursor, err := collection.Find(context.Background(), bson.D{}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	var workouts []types.Workout
+	if err := cursor.All(context.Background(), &workouts); err != nil {
+		return nil, err
+	}
+	return workouts, nil
 }
 
 func getClient(connectionString string) *mongo.Client {

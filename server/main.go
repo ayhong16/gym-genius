@@ -23,6 +23,8 @@ func main() {
 
 	scheduler := src.NewScheduler(database)
 
+	src.StartRouter(database)
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
