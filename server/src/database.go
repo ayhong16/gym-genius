@@ -2,10 +2,8 @@ package src
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"server/initializers"
 	"server/types"
 
@@ -15,17 +13,17 @@ import (
 )
 
 type Database struct {
-	apiKey           string
+	api              *API
 	connectionString string
 	Client           *mongo.Client
 }
 
-func NewDatabase() *Database {
-	apiKey, connectionString := initializers.LoadEnvVariables()
+func NewDatabase(api *API) *Database {
+	connectionString := initializers.LoadConnectionString()
 	client := getClient(connectionString)
 
 	return &Database{
-		apiKey:           apiKey,
+		api:              api,
 		connectionString: connectionString,
 		Client:           client,
 	}
@@ -36,7 +34,7 @@ func (db *Database) UpdateExercises() {
 
 	collection := db.Client.Database("gym_management").Collection("exercises")
 
-	exercises, err := db.fetchExercises()
+	exercises, err := db.api.FetchExercises()
 	if err != nil {
 		log.Fatalf("Failed to fetch exercises: %v", err)
 		return
@@ -68,36 +66,6 @@ func updateCollection(exercises []types.Exercise, collection *mongo.Collection) 
 		return
 	}
 	fmt.Println("Exercises updated!")
-}
-
-func (db *Database) fetchExercises() ([]types.Exercise, error) {
-	url := "https://exercisedb.p.rapidapi.com/exercises?limit=0&offset=0"
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("x-rapidapi-host", "exercisedb.p.rapidapi.com")
-	req.Header.Add("x-rapidapi-key", db.apiKey)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, err
-	}
-
-	var exercises []types.Exercise
-	if err := json.NewDecoder(resp.Body).Decode(&exercises); err != nil {
-		return nil, err
-	}
-
-	return exercises, nil
 }
 
 func (db *Database) FetchWorkouts() ([]types.Workout, error) {

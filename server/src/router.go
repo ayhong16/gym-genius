@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func StartRouter(db *Database) {
+func StartRouter(db *Database, api *API) {
 	r := gin.Default()
 
 	r.GET("/", func(c *gin.Context) {
@@ -30,6 +30,15 @@ func StartRouter(db *Database) {
 			return
 		}
 		c.JSON(200, gin.H{"message": "Workout created"})
+	})
+
+	r.GET("/bodyparts", func(c *gin.Context) {
+		bodyParts, err := api.FetchBodyParts()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to fetch body parts list"})
+			return
+		}
+		c.JSON(200, gin.H{"bodyParts": bodyParts})
 	})
 
 	r.Run()

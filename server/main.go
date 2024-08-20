@@ -18,12 +18,14 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	database := src.NewDatabase()
+	api := src.NewAPI()
+
+	database := src.NewDatabase(api)
 	defer database.Disconnect()
 
 	scheduler := src.NewScheduler(database)
 
-	src.StartRouter(database)
+	src.StartRouter(database, api)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
